@@ -1,9 +1,37 @@
 spring:
   flyway:
+    enabled: true
     locations: classpath:migration/versions
+    baselineOnMigrate: true
+    baselineVersion: 0
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/examples
+    url: jdbc:postgresql://localhost:5432/rrhh-digitaldoc
     username: sa
     password: root
     driver-class-name: org.postgresql.Driver
+    hikari:
+      schema: adm-rrhh-digitaldoc
+      poolName: FwkCNAHikariCP
+      minimumIdle: 2
+      maximumPoolSize: 5
+      idleTimeout: 30000
+      maxLifetime: 2000000
+      connectionTimeout: 30000
+      initializationFailTimeout: 0
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+fwkcna:
+  jpa:
+    data-migration:
+      disabled: false
+
+logging:
+  level:
+    org.flywaydb: DEBUG

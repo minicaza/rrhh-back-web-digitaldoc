@@ -1,0 +1,2 @@
+org.springframework.context.ApplicationListener=\
+  com.mercadona.framework.cna.starter.jpa.repository.config.DatabasePropertiesListener
