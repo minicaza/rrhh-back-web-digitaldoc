@@ -64,6 +64,7 @@
                 <useTags>true</useTags>
                 <openApiNullable>false</openApiNullable>
                 <skipDefaultInterface>true</skipDefaultInterface>
+                <sourceFolder>.</sourceFolder>
               </configOptions>
             </configuration>
           </execution>
