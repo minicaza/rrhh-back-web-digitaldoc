@@ -32,6 +32,11 @@
     </dependency>
 
     <dependency>
+      <groupId>com.mercadona.rrhh.digitaldoc</groupId>
+      <artifactId>rrhh-back-web-digitaldoc-pdf-generator</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.mercadona.framework.cna</groupId>
       <artifactId>fwkcna-starter-observability-poe</artifactId>
     </dependency>
