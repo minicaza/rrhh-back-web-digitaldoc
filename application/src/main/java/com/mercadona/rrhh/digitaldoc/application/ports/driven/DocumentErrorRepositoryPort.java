@@ -25,4 +25,13 @@ public interface DocumentErrorRepositoryPort {
      * @return list of errors for the document, empty if none
      */
     List<DocumentError> findByDocumentId(UUID documentId);
+
+    /**
+     * Returns the most recent error record for a document, used by the pipeline
+     * orchestrator to determine which step to resume from after a FAILED status.
+     *
+     * @param documentId the document identifier
+     * @return the latest error, or empty if none exist
+     */
+    java.util.Optional<DocumentError> findLatestByDocumentId(UUID documentId);
 }

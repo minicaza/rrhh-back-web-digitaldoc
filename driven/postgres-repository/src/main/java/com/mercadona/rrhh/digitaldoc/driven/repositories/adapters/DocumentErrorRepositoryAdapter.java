@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -20,19 +21,19 @@ public class DocumentErrorRepositoryAdapter implements DocumentErrorRepositoryPo
     private final DocumentErrorMOJpaRepository jpaRepository;
     private final DocumentErrorMOMapper mapper;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public DocumentError save(DocumentError error) {
         return mapper.toDomain(jpaRepository.save(mapper.toMO(error)));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<DocumentError> findByDocumentId(UUID documentId) {
         return mapper.toDomainList(jpaRepository.findByDocumentId(documentId));
+    }
+
+    @Override
+    public Optional<DocumentError> findLatestByDocumentId(UUID documentId) {
+        return jpaRepository.findTopByDocumentIdOrderByErrorTimeDesc(documentId)
+                .map(mapper::toDomain);
     }
 }

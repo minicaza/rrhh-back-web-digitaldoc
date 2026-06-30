@@ -4,12 +4,18 @@ import com.mercadona.framework.cna.commons.domain.MercadonaPage;
 import com.mercadona.rrhh.digitaldoc.application.ports.driven.DocumentRepositoryPort;
 import com.mercadona.rrhh.digitaldoc.domain.Document;
 import com.mercadona.rrhh.digitaldoc.domain.DocumentStatus;
+import com.mercadona.rrhh.digitaldoc.domain.FailedStep;
+import com.mercadona.rrhh.digitaldoc.driven.repositories.jpa.DocumentErrorMOJpaRepository;
 import com.mercadona.rrhh.digitaldoc.driven.repositories.jpa.DocumentMOJpaRepository;
 import com.mercadona.rrhh.digitaldoc.driven.repositories.mappers.DocumentMOMapper;
+import com.mercadona.rrhh.digitaldoc.driven.repositories.models.DocumentErrorMO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,41 +27,57 @@ import java.util.UUID;
 public class DocumentRepositoryAdapter implements DocumentRepositoryPort {
 
     private final DocumentMOJpaRepository jpaRepository;
+    private final DocumentErrorMOJpaRepository errorJpaRepository;
     private final DocumentMOMapper mapper;
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Document save(Document document) {
         return mapper.toDomain(jpaRepository.save(mapper.toMO(document)));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Optional<Document> findById(UUID id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Optional<Document> findByEmployeeIdAndManagedGroupId(String employeeId, String managedGroupId) {
         return jpaRepository.findByEmployeeIdAndManagedGroupId(employeeId, managedGroupId)
-            .map(mapper::toDomain);
+                .map(mapper::toDomain);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public MercadonaPage<Document> findByStatus(DocumentStatus status, Pageable pageable) {
         return MercadonaPage.of(
-            jpaRepository.findByDocumentStatusId(status.getId(), pageable)
-                .map(mapper::toDomain)
+                jpaRepository.findByDocumentStatusId(status.getId(), pageable)
+                        .map(mapper::toDomain)
         );
+    }
+
+    @Override
+    public List<Document> findAllById(List<UUID> ids) {
+        return mapper.toDomainList(jpaRepository.findAllById(ids));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateStatus(UUID id, DocumentStatus status) {
+        jpaRepository.updateStatusById(id, status.getId());
+    }
+
+    /**
+     * Atomically updates the document status to FAILED and inserts an error record.
+     * Runs in its own REQUIRES_NEW transaction so the failure is always persisted,
+     * regardless of the outer transaction state.
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(UUID id, FailedStep failedStep, String errorMessage) {
+        jpaRepository.updateStatusById(id, DocumentStatus.FAILED.getId());
+        errorJpaRepository.save(DocumentErrorMO.builder()
+                .documentId(id)
+                .failedStep(failedStep.name())
+                .errorMessage(errorMessage)
+                .build());
     }
 }

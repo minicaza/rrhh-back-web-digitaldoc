@@ -21,6 +21,8 @@ public interface DocumentMOMapper {
      * @return the domain entity
      */
     @Mapping(target = "status", expression = "java(DocumentStatus.fromId(mo.getDocumentStatusId()))")
+    @Mapping(target = "employeeInfo", ignore = true)
+    @Mapping(target = "pdfBytes", ignore = true)
     Document toDomain(DocumentMO mo);
 
     /**

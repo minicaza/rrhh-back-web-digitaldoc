@@ -54,4 +54,24 @@ public enum DocumentStatus {
         }
         throw new IllegalArgumentException("Unknown document status id: " + id);
     }
+
+    /**
+     * Returns the set of statuses this status can legally transition to,
+     * mirroring the document_status_transitions catalogue table.
+     */
+    public java.util.Set<DocumentStatus> allowedNextStatuses() {
+        return switch (this) {
+            case PENDING       -> java.util.Set.of(ENRICHED, FAILED);
+            case ENRICHED      -> java.util.Set.of(PDF_GENERATED, FAILED);
+            case PDF_GENERATED -> java.util.Set.of(STORED, FAILED);
+            case STORED        -> java.util.Set.of(PUBLISHED, FAILED);
+            case FAILED        -> java.util.Set.of(ENRICHED, PDF_GENERATED, STORED, PUBLISHED);
+            case PUBLISHED     -> java.util.Set.of();
+        };
+    }
+
+    /** Returns {@code true} if transitioning to {@code target} is a valid lifecycle move. */
+    public boolean canTransitionTo(DocumentStatus target) {
+        return allowedNextStatuses().contains(target);
+    }
 }

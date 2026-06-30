@@ -32,6 +32,9 @@ fwkcna:
     data-migration:
       disabled: false
 
+cardgenerator:
+  base-url: http://localhost:8081
+
 logging:
   level:
     org.flywaydb: DEBUG

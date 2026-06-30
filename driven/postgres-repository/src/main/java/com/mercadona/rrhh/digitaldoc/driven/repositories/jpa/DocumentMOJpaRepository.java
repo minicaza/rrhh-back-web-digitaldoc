@@ -4,6 +4,9 @@ import com.mercadona.rrhh.digitaldoc.driven.repositories.models.DocumentMO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,4 +33,15 @@ public interface DocumentMOJpaRepository extends JpaRepository<DocumentMO, UUID>
      * @return a page of matching documents
      */
     Page<DocumentMO> findByDocumentStatusId(Short documentStatusId, Pageable pageable);
+
+    /**
+     * Issues a direct UPDATE for the document status. Bypasses Hibernate entity tracking
+     * to avoid a SELECT + dirty-check round-trip on every pipeline state transition.
+     *
+     * @param id       the document UUID
+     * @param statusId the numeric status identifier
+     */
+    @Modifying
+    @Query("UPDATE DocumentMO d SET d.documentStatusId = :statusId, d.updatedAt = CURRENT_TIMESTAMP WHERE d.id = :id")
+    void updateStatusById(@Param("id") UUID id, @Param("statusId") Short statusId);
 }

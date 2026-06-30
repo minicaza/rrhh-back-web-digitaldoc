@@ -33,6 +33,11 @@
         <artifactId>rrhh-back-web-digitaldoc-postgres-repository</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.mercadona.rrhh.digitaldoc</groupId>
+        <artifactId>rrhh-back-web-digitaldoc-enrichment-rest-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -42,6 +47,7 @@
     <!-- Adapter implementations-->
     <module>driving/api-rest</module>
     <module>driven/postgres-repository</module>
+    <module>driven/enrichment-rest-client</module>
     <!-- Runtime -->
     <module>boot</module>
   </modules>

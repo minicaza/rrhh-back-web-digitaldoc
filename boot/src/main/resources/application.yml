@@ -1,6 +1,10 @@
 spring:
   application:
     name: rrhh-back-web-digitaldoc
+  cache:
+    cache-names: enrichment
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=10m
 
 # Actuator endpoints configuration
 management:
