@@ -31,11 +31,6 @@ fwkcna:
   jpa:
     data-migration:
       disabled: false
-
-cardgenerator:
-  base-url: http://localhost:8081
-
-fwkcna:
   buckets:
     - id: rrhh-documents
       bucket-name: rrhh-documents
@@ -45,6 +40,9 @@ fwkcna:
       credentials:
         access-key: minio
         secret-key: minio123
+
+cardgenerator:
+  base-url: http://localhost:8081
 
 logging:
   level:
