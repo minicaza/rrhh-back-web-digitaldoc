@@ -38,6 +38,19 @@
       <artifactId>postgresql</artifactId>
     </dependency>
 
+    <!-- Hibernate Envers — audit tables -->
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-envers</artifactId>
+    </dependency>
+
+    <!-- EntityUtils — simplifies equals/hashCode in JPA entities -->
+    <dependency>
+      <groupId>com.mercadona.codehut</groupId>
+      <artifactId>codehut-libs-jpa</artifactId>
+      <version>0.4.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>
