@@ -51,6 +51,19 @@
       <version>0.4.0</version>
     </dependency>
 
+    <!-- Outbox — transactional JPA outbox -->
+    <dependency>
+      <groupId>com.mercadona.framework.cna</groupId>
+      <artifactId>fwkcna-starter-outbox-avro-jpa-register</artifactId>
+    </dependency>
+
+    <!-- Avro schema for employee digital document events -->
+    <dependency>
+      <groupId>com.mercadona.kafka.schemas.concepto.thirdparty.employee.employeedigitaldocument</groupId>
+      <artifactId>employeedigitaldocumentv0</artifactId>
+      <version>1.1.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>

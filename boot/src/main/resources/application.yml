@@ -27,3 +27,19 @@ server:
   port: 8080
   servlet:
     context-path: /human-resources/rrhh/digitaldoc/v1
+
+fwkcna:
+  outbox:
+    enabled: true
+    table-name: ${TABLE_NAME:o_outbox}
+    schema-registries:
+      sr-basic:
+        url: ${SCHEMA_REGISTRY_URL}
+        authentication:
+          basic:
+            user: ${KAFKA_USER}
+            password: ${KAFKA_PASSWORD}
+
+outbox:
+  topic:
+    employee-digital-document: ${KAFKA_TOPIC_OUT:concepto.thirdparty.employee.employeedigitaldocument.event.public.v0}

@@ -40,6 +40,14 @@ fwkcna:
       credentials:
         access-key: minio
         secret-key: minio123
+  outbox:
+    schema-registries:
+      sr-basic:
+        url: http://localhost:9081
+        authentication:
+          basic:
+            user: ""
+            password: ""
 
 cardgenerator:
   base-url: http://localhost:8081
