@@ -6,7 +6,6 @@ import com.mercadona.rrhh.digitaldoc.domain.Document;
 import com.mercadona.rrhh.digitaldoc.domain.DocumentStatus;
 import com.mercadona.rrhh.digitaldoc.driven.repositories.jpa.DocumentMOJpaRepository;
 import com.mercadona.rrhh.digitaldoc.driven.repositories.mappers.EmployeeDigitalDocumentOutboxMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>{@link #saveAndMarkPublished} runs in a dedicated {@code REQUIRES_NEW} transaction
  * that atomically inserts the outbox record and updates the document status to PUBLISHED.
+ * The status is updated via JPA {@code save()} so that Hibernate Envers audits the change.
  * The outbox relay will pick up the record only after this transaction commits.
  */
 @Component
@@ -47,6 +47,9 @@ public class OutboxPublicationAdapter implements OutboxPublicationPort {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveAndMarkPublished(Document document) {
         outboxService.save(mapper.toKey(document), mapper.toValue(document), topic);
-        documentJpaRepository.updateStatusById(document.getId(), DocumentStatus.PUBLISHED.getId());
+        documentJpaRepository.findById(document.getId()).ifPresent(mo -> {
+            mo.setDocumentStatusId(DocumentStatus.PUBLISHED.getId());
+            documentJpaRepository.save(mo);
+        });
     }
 }

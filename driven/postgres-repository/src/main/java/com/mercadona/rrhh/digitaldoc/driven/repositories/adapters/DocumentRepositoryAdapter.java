@@ -59,21 +59,31 @@ public class DocumentRepositoryAdapter implements DocumentRepositoryPort {
         return mapper.toDomainList(jpaRepository.findAllById(ids));
     }
 
+    /**
+     * Loads the entity, sets the new status and saves through the JPA session so that
+     * Hibernate Envers can intercept the change and write to {@code document_aud}.
+     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateStatus(UUID id, DocumentStatus status) {
-        jpaRepository.updateStatusById(id, status.getId());
+        jpaRepository.findById(id).ifPresent(mo -> {
+            mo.setDocumentStatusId(status.getId());
+            jpaRepository.save(mo);
+        });
     }
 
     /**
-     * Atomically updates the document status to FAILED and inserts an error record.
-     * Runs in its own REQUIRES_NEW transaction so the failure is always persisted,
-     * regardless of the outer transaction state.
+     * Atomically marks the document as FAILED (via JPA save — audited by Envers)
+     * and inserts an error record. Runs in REQUIRES_NEW so the failure is always
+     * persisted regardless of the outer transaction state.
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(UUID id, FailedStep failedStep, String errorMessage) {
-        jpaRepository.updateStatusById(id, DocumentStatus.FAILED.getId());
+        jpaRepository.findById(id).ifPresent(mo -> {
+            mo.setDocumentStatusId(DocumentStatus.FAILED.getId());
+            jpaRepository.save(mo);
+        });
         errorJpaRepository.save(DocumentErrorMO.builder()
                 .documentId(id)
                 .failedStep(failedStep.name())
