@@ -1,0 +1,23 @@
+networks:
+  local:
+    name: my-web-network
+
+services:
+  db_postgres_examples:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sa
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: examples
+    volumes:
+      - postgresql:/var/lib/postgresql
+      - postgres16-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - local
+
+volumes:
+  postgresql:
+  postgres16-data:
+    driver: local
