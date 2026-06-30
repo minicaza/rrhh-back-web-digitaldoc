@@ -21,3 +21,5 @@ management:
 
 server:
   port: 8080
+  servlet:
+    context-path: /human-resources/rrhh/digitaldoc/v1
