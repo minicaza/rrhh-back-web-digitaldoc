@@ -1,0 +1,727 @@
+openapi: 3.0.1
+info:
+  title: RRHH Digital Document API
+  version: 1.0.0
+  description: >
+    API for managing employee AI-certification digital documents.
+    Exposes document lifecycle queries and a processing endpoint
+    consumed by the SNK (single-event) and BTC (batch) microservices.
+  contact:
+    name: Mercadona S.A.
+servers:
+  - url: 'http://localhost:8080/human-resources/rrhh/digitaldoc/v1'
+    description: Local development server
+tags:
+  - name: Documents
+    description: Digital document lifecycle operations.
+  - name: Processing
+    description: Document processing trigger operations for internal consumers (SNK/BTC).
+
+paths:
+
+  # ─── Processing endpoint (SNK sends 1 UUID, BTC sends N UUIDs per chunk) ───
+
+  /documents/process:
+    post:
+      tags:
+        - Processing
+      summary: Accept one or more documents for processing.
+      description: >
+        Accepts a list of document UUIDs and submits each one for asynchronous
+        pipeline processing (enrich → PDF → bucket → publish).
+        The SNK microservice sends a single-element list after inserting the document in PENDING state.
+        The BTC microservice sends chunks of up to 100 UUIDs during the daily reprocessing job.
+        Returns 200 OK once all UUIDs have been dispatched for processing.
+      operationId: processDocuments
+      security:
+        - ADFS:
+            - write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessDocumentsRequest'
+            examples:
+              snk-single:
+                summary: SNK — single document UUID
+                value:
+                  documentIds:
+                    - 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+              btc-batch:
+                summary: BTC — batch of document UUIDs
+                value:
+                  documentIds:
+                    - 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+                    - 'b4e2d3c5-6789-4bcd-aef0-1234567890bc'
+      responses:
+        '200':
+          description: OK. All UUIDs have been dispatched for processing.
+          headers:
+            X-Rate-Limit:
+              $ref: '#/components/headers/X-Rate-Limit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Query: document for a specific employee ───
+
+  /documents/employee:
+    get:
+      tags:
+        - Documents
+      summary: Get the digital document for a specific employee.
+      description: >
+        Retrieves the digital document associated with a given (employeeId, managedGroupId) pair.
+        Each employee has at most one document per managed group.
+        Returns 404 if no document has been created for the employee yet.
+      operationId: getDocumentByEmployee
+      security:
+        - ADFS:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/employeeId'
+        - $ref: '#/components/parameters/managedGroupId'
+        - $ref: '#/components/parameters/localeLanguageCode'
+      responses:
+        '200':
+          description: OK.
+          headers:
+            X-Rate-Limit:
+              $ref: '#/components/headers/X-Rate-Limit'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentByEmployeeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Query: document by ID ───
+
+  /documents/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Get a digital document by its identifier.
+      description: >
+        Retrieves the details of a digital document by its UUID,
+        including its current lifecycle status.
+      operationId: getDocumentById
+      security:
+        - ADFS:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+        - $ref: '#/components/parameters/localeLanguageCode'
+      responses:
+        '200':
+          description: OK.
+          headers:
+            X-Rate-Limit:
+              $ref: '#/components/headers/X-Rate-Limit'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentByIdResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Query: current status of a document ───
+
+  /documents/{documentId}/status:
+    get:
+      tags:
+        - Documents
+      summary: Get the current status of a digital document.
+      description: >
+        Returns the current lifecycle status of the document along with a
+        human-readable description in the language specified by the Accept-Language header.
+        Supported locales: es-ES (default), en-US.
+      operationId: getDocumentStatus
+      security:
+        - ADFS:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+        - $ref: '#/components/parameters/acceptLanguage'
+      responses:
+        '200':
+          description: OK.
+          headers:
+            X-Rate-Limit:
+              $ref: '#/components/headers/X-Rate-Limit'
+            Content-Language:
+              description: The locale used for the status description.
+              schema:
+                type: string
+                example: es-ES
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─── Query: list documents filtered by status ───
+
+  /documents:
+    get:
+      tags:
+        - Documents
+      summary: List digital documents filtered by status.
+      description: >
+        Returns a paginated list of digital documents filtered by their current
+        lifecycle status. Useful for monitoring the pipeline (e.g. documents stuck
+        in PENDING or FAILED) and for reporting purposes.
+        Pagination is 1-based: firstPage=1 returns the first page.
+      operationId: listDocumentsByStatus
+      security:
+        - ADFS:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/statusFilter'
+        - $ref: '#/components/parameters/localeLanguageCode'
+        - $ref: '#/components/parameters/firstPage'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/order'
+      responses:
+        '200':
+          description: OK.
+          headers:
+            X-Rate-Limit:
+              $ref: '#/components/headers/X-Rate-Limit'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessGetDocuments'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ─── Components ──────────────────────────────────────────────────────────────
+
+components:
+
+  # ─── Security Schemes ───
+
+  securitySchemes:
+    ADFS:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://localhost/adfs/oauth2/token'
+          scopes:
+            read: Grants read access to document data.
+            write: Grants write access to trigger document processing.
+
+  # ─── Headers ───
+
+  headers:
+    X-Rate-Limit:
+      description: Maximum number of requests allowed in the current time window.
+      schema:
+        type: integer
+        format: int64
+    X-Error-Details:
+      description: Additional details about the error.
+      schema:
+        type: string
+    Retry-After:
+      description: Seconds to wait before retrying the request.
+      schema:
+        type: integer
+        format: int64
+
+  # ─── Parameters ───
+
+  parameters:
+    documentId:
+      name: documentId
+      in: path
+      required: true
+      description: Unique identifier of the digital document (UUID).
+      schema:
+        type: string
+        format: uuid
+        example: 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+
+    employeeId:
+      name: employeeId
+      in: query
+      required: true
+      description: Employee identifier.
+      schema:
+        type: string
+        maxLength: 7
+        example: '3898114'
+
+    managedGroupId:
+      name: managedGroupId
+      in: query
+      required: true
+      description: Managed group identifier.
+      schema:
+        type: string
+        maxLength: 2
+        example: '08'
+
+    statusFilter:
+      name: status
+      in: query
+      required: true
+      description: Lifecycle status to filter documents by.
+      schema:
+        $ref: '#/components/schemas/DocumentStatus'
+
+    firstPage:
+      name: firstPage
+      in: query
+      required: false
+      description: 'Requested page (first page is 1). Cannot be less than 1.'
+      schema:
+        type: integer
+        format: int32
+        default: 1
+        minimum: 1
+        example: 1
+
+    pageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: 'Number of results per page. Cannot be less than 1 or more than 50.'
+      schema:
+        type: integer
+        format: int32
+        default: 10
+        minimum: 1
+        maximum: 50
+        example: 10
+
+    sort:
+      name: sort
+      in: query
+      required: false
+      description: Field used to sort results.
+      schema:
+        $ref: '#/components/schemas/DocumentSortField'
+
+    order:
+      name: order
+      in: query
+      required: false
+      description: Sort direction.
+      schema:
+        $ref: '#/components/schemas/OrderDirection'
+
+    localeLanguageCode:
+      name: localeLanguageCode
+      in: query
+      required: false
+      description: >
+        Preferred locale for localised fields (e.g. status name).
+        Supported values: es-ES, en-US.
+        If not provided or the requested locale is not available, defaults to es-ES.
+      schema:
+        type: string
+        pattern: '^[a-z]{2}-[A-Z]{2}$'
+        example: es-ES
+
+    acceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: >
+        Preferred locale for the status description.
+        Supported values: es-ES (default), en-US.
+      schema:
+        type: string
+        pattern: '^(es-ES|en-US)$'
+        default: es-ES
+        example: es-ES
+
+  # ─── Reusable Responses ───
+
+  responses:
+    BadRequest:
+      description: Bad Request — invalid request parameters or body.
+      headers:
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    Unauthorized:
+      description: Unauthorized — missing or invalid authentication token.
+      headers:
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    Forbidden:
+      description: Forbidden — authenticated but lacking required permissions.
+      headers:
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    NotFound:
+      description: Not Found — the requested resource does not exist.
+      headers:
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    UnsupportedMediaType:
+      description: Unsupported Media Type — Content-Type header not accepted.
+      headers:
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    UnprocessableEntity:
+      description: Unprocessable Entity — request is syntactically valid but semantically incorrect.
+      headers:
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    TooManyRequests:
+      description: Too Many Requests — rate limit exceeded.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/Retry-After'
+        X-Rate-Limit:
+          $ref: '#/components/headers/X-Rate-Limit'
+        X-Error-Details:
+          $ref: '#/components/headers/X-Error-Details'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+    InternalServerError:
+      description: Internal Server Error — unexpected server-side failure.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+  # ─── Schemas ───
+
+  schemas:
+
+    # ── Enums ──
+
+    DocumentStatus:
+      type: string
+      description: >
+        Lifecycle status of a digital document.
+        PENDING: Event received, document record created.
+        ENRICHED: Employee data fetched from the enrichment API.
+        PDF_GENERATED: PDF certificate generated successfully.
+        STORED: PDF uploaded to the object storage bucket.
+        PUBLISHED: Availability event published to Kafka; document ready for the employee.
+        FAILED: Pipeline failed at some step.
+      enum:
+        - PENDING
+        - ENRICHED
+        - PDF_GENERATED
+        - STORED
+        - PUBLISHED
+        - FAILED
+      example: PUBLISHED
+
+    DocumentSortField:
+      type: string
+      description: 'Field used to sort results. Allowed values: employeeId, managedGroupId'
+      pattern: '^(employeeId|managedGroupId)$'
+      example: employeeId
+      default: employeeId
+
+    OrderDirection:
+      type: string
+      description: 'Sort direction. Allowed values: asc, desc'
+      pattern: '^(asc|desc)$'
+      example: asc
+      default: asc
+
+    Employee:
+      title: Employee
+      type: object
+      description: Employee identifier within a managed group.
+      required:
+        - employeeId
+        - managedGroupId
+      properties:
+        employeeId:
+          type: string
+          maxLength: 7
+          description: Employee identifier.
+          example: '3898114'
+        managedGroupId:
+          type: string
+          maxLength: 2
+          description: Managed group identifier.
+          example: '08'
+
+    DocumentStatusData:
+      title: DocumentStatusData
+      type: object
+      description: >
+        Status of a document including its code and a localised human-readable name.
+        The name language is determined by the localeLanguageCode query parameter;
+        defaults to es-ES if not provided.
+      required:
+        - id
+        - name
+      properties:
+        id:
+          $ref: '#/components/schemas/DocumentStatus'
+        name:
+          type: string
+          description: Localised status name.
+          example: 'Pendiente'
+
+    # ── Request Schemas ──
+
+    ProcessDocumentsRequest:
+      title: ProcessDocumentsRequest
+      type: object
+      description: >
+        Request body for the process endpoint.
+        The SNK microservice always sends exactly one document UUID.
+        The BTC microservice sends chunks of up to 100 UUIDs.
+      required:
+        - documentIds
+      properties:
+        documentIds:
+          type: array
+          description: List of document UUIDs to process.
+          minItems: 1
+          maxItems: 500
+          items:
+            type: string
+            format: uuid
+          example:
+            - 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+
+    # ── Response Schemas ──
+
+    DocumentByEmployeeResponse:
+      title: DocumentByEmployeeResponse
+      type: object
+      description: >
+        Document returned when querying by employee. The employeeId and managedGroupId
+        are not repeated since they were provided as query parameters.
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the document. The PDF is stored at documents/{id}.pdf.
+          example: 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+        status:
+          $ref: '#/components/schemas/DocumentStatusData'
+
+    DocumentByIdResponse:
+      title: DocumentByIdResponse
+      type: object
+      description: >
+        Document returned when querying by UUID. The id is not repeated since it was
+        provided as a path parameter.
+      required:
+        - employee
+        - status
+      properties:
+        employee:
+          $ref: '#/components/schemas/Employee'
+        status:
+          $ref: '#/components/schemas/DocumentStatusData'
+
+    DocumentSummaryResponse:
+      title: DocumentSummaryResponse
+      type: object
+      description: Lightweight document representation used in paginated list responses.
+      required:
+        - id
+        - employee
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the document.
+          example: 'a3f1c2d4-5678-4abc-9def-0123456789ab'
+        employee:
+          $ref: '#/components/schemas/Employee'
+        status:
+          $ref: '#/components/schemas/DocumentStatusData'
+
+    DocumentStatusResponse:
+      title: DocumentStatusResponse
+      type: object
+      description: >
+        Current lifecycle status of a document with a localised human-readable description.
+        The description language is determined by the Accept-Language request header.
+      required:
+        - status
+        - description
+      properties:
+        status:
+          $ref: '#/components/schemas/DocumentStatus'
+        description:
+          type: string
+          description: Localised description of the current status.
+          example: 'El evento ha sido recibido y se ha creado el registro del documento.'
+
+    DocumentList:
+      title: DocumentList
+      type: array
+      description: List of document summaries.
+      items:
+        $ref: '#/components/schemas/DocumentSummaryResponse'
+
+    Pagination:
+      title: Pagination
+      type: object
+      description: Pagination metadata mirroring the pedper standard.
+      properties:
+        requestedPage:
+          type: integer
+          format: int32
+          description: Page number requested (1-based).
+          example: 1
+        requestedSize:
+          type: integer
+          format: int32
+          description: Number of results per page requested.
+          example: 10
+        retrievedResults:
+          type: integer
+          format: int32
+          description: Number of results in the current response page.
+          example: 10
+        totalResults:
+          type: integer
+          format: int64
+          description: Total number of results matching the filter.
+          example: 147
+
+    SuccessGetDocuments:
+      title: SuccessGetDocuments
+      type: object
+      description: Paginated response for the document list endpoint.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          $ref: '#/components/schemas/DocumentList'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # ── Error Schema ──
+
+    ErrorModel:
+      title: ErrorModel
+      type: object
+      description: Standard error response body.
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorResource'
+
+    ErrorResource:
+      title: ErrorResource
+      type: object
+      properties:
+        code:
+          type: string
+          example: 'NOT_FOUND'
+        description:
+          type: string
+          example: 'Document not found with id a3f1c2d4-5678-4abc-9def-0123456789ab'
+        details:
+          type: array
+          items:
+            type: string
+          example:
+            - 'documentIds[0]: must be a valid UUID'
