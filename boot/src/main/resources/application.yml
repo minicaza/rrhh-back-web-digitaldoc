@@ -42,4 +42,4 @@ fwkcna:
 
 outbox:
   topic:
-    employee-digital-document: ${KAFKA_TOPIC_OUT:concepto.thirdparty.employee.employeedigitaldocument.event.public.v0}
+    employee-digital-document: ${KAFKA_TOPIC_OUT:thirdparty.employee.employeedigitaldocument.event.restrictedout.v0.table.cpd}
