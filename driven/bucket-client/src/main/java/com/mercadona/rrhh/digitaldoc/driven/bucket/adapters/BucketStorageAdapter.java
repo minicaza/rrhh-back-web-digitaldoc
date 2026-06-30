@@ -1,6 +1,7 @@
 package com.mercadona.rrhh.digitaldoc.driven.bucket.adapters;
 
 import com.google.common.io.ByteSource;
+import com.mercadona.framework.cna.commons.exception.MercadonaRuntimeException;
 import com.mercadona.framework.cna.lib.bucket.service.BucketService;
 import com.mercadona.rrhh.digitaldoc.application.ports.driven.BucketStoragePort;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +40,7 @@ public class BucketStorageAdapter implements BucketStoragePort {
         try {
             bucketService.upload(bucketId, ByteSource.wrap(pdfBytes), path, PDF_CONTENT_TYPE, Map.of());
         } catch (Exception e) {
-            throw new RuntimeException(e); // TODO: Replace with corresponding business exception
+            throw new MercadonaRuntimeException(e.getMessage());
         }
     }
 }
