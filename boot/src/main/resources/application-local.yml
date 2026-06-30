@@ -35,6 +35,17 @@ fwkcna:
 cardgenerator:
   base-url: http://localhost:8081
 
+fwkcna:
+  buckets:
+    - id: rrhh-documents
+      bucket-name: rrhh-documents
+      enabled: true
+      url: http://localhost:9000
+      provider: minio
+      credentials:
+        access-key: minio
+        secret-key: minio123
+
 logging:
   level:
     org.flywaydb: DEBUG
