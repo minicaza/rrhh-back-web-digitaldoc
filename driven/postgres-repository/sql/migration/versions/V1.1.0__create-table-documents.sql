@@ -104,7 +104,7 @@ CREATE TABLE "adm-rrhh-digitaldoc".revinfo (
     PRIMARY KEY (rev)
 );
 
-CREATE SEQUENCE revinfo_seq;
+CREATE SEQUENCE revinfo_seq INCREMENT BY 50;
 
 CREATE TABLE "adm-rrhh-digitaldoc".document_aud (
     id                 UUID        NOT NULL,

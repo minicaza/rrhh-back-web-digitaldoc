@@ -1,0 +1,211 @@
+{
+  "info": {
+    "_postman_id": "f2b3c4d5-e6f7-8901-bcde-f12345678901",
+    "name": "DIGITALDOC",
+    "description": "Digital certification document API — rrhh-back-web-digitaldoc.\n\nBase URL: {{baseUrl}}{{basePath}}\n\nSet the `bearerToken` environment variable with a valid JWT before sending authenticated requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Processing",
+      "description": "Document processing trigger operations for internal consumers (SNK/BTC).",
+      "item": [
+        {
+          "name": "Process documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentIds\": [\n    \"{{documentId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/documents/process",
+              "host": ["{{baseUrl}}{{basePath}}"],
+              "path": ["documents", "process"]
+            },
+            "description": "Accepts a list of document UUIDs and submits each one for asynchronous pipeline processing.\n\nThe SNK microservice sends a single-element list after inserting the document in PENDING state. The BTC microservice sends chunks of up to 100 UUIDs."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "description": "Digital document lifecycle operations.",
+      "item": [
+        {
+          "name": "Get document by employee",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/documents/employee?employeeId={{employeeId}}&managedGroupId={{managedGroupId}}&localeLanguageCode={{locale}}",
+              "host": ["{{baseUrl}}{{basePath}}"],
+              "path": ["documents", "employee"],
+              "query": [
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee identifier (max 7 chars)."
+                },
+                {
+                  "key": "managedGroupId",
+                  "value": "{{managedGroupId}}",
+                  "description": "Managed group identifier (max 2 chars)."
+                },
+                {
+                  "key": "localeLanguageCode",
+                  "value": "{{locale}}",
+                  "description": "Preferred locale for localised fields. Optional, defaults to es-ES."
+                }
+              ]
+            },
+            "description": "Retrieves the digital document associated with a given (employeeId, managedGroupId) pair. Each employee has at most one document per managed group."
+          },
+          "response": []
+        },
+        {
+          "name": "Get document by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/documents/{{documentId}}?localeLanguageCode={{locale}}",
+              "host": ["{{baseUrl}}{{basePath}}"],
+              "path": ["documents", "{{documentId}}"],
+              "query": [
+                {
+                  "key": "localeLanguageCode",
+                  "value": "{{locale}}",
+                  "description": "Preferred locale for localised fields. Optional, defaults to es-ES."
+                }
+              ]
+            },
+            "description": "Retrieves the details of a digital document by its UUID, including its current lifecycle status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get document status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}",
+                "description": "Preferred locale for the status description. Supported: es-ES (default), en-US."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/documents/{{documentId}}/status",
+              "host": ["{{baseUrl}}{{basePath}}"],
+              "path": ["documents", "{{documentId}}", "status"]
+            },
+            "description": "Returns the current lifecycle status of the document along with a human-readable description in the language specified by the Accept-Language header."
+          },
+          "response": []
+        },
+        {
+          "name": "List documents by status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}{{basePath}}/documents?status=PENDING&localeLanguageCode={{locale}}&firstPage=1&pageSize=10&sort=employeeId&order=asc",
+              "host": ["{{baseUrl}}{{basePath}}"],
+              "path": ["documents"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Lifecycle status to filter by. One of: PENDING, ENRICHED, PDF_GENERATED, STORED, PUBLISHED, FAILED."
+                },
+                {
+                  "key": "localeLanguageCode",
+                  "value": "{{locale}}",
+                  "description": "Preferred locale for localised fields. Optional, defaults to es-ES."
+                },
+                {
+                  "key": "firstPage",
+                  "value": "1",
+                  "description": "Requested page (1-based). Min 1."
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Results per page. Min 1, max 50."
+                },
+                {
+                  "key": "sort",
+                  "value": "employeeId",
+                  "description": "Sort field: employeeId or managedGroupId."
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Sort direction: asc or desc."
+                }
+              ]
+            },
+            "description": "Returns a paginated list of digital documents filtered by their current lifecycle status. Pagination is 1-based."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "basePath",
+      "value": "/human-resources/rrhh/digitaldoc/v1"
+    }
+  ]
+}
